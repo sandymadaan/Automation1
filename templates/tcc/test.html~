@@ -1,0 +1,41 @@
+<html>
+<head>
+    <title>gne</title>
+</head>
+{% block content %}
+<div align="center"><h2>Catalog2</h2></div>
+<div align="center"><h4>Tests for {{field.name}}</h4></div>
+<table>
+	<tr>
+		<td><b>S.No</b></td>
+		<td> </td>
+		<td> </td>
+		<td><b>Test</b></td>
+		<td> </td>
+		<td> </td>
+		<td><b>Quantity</b></td>
+		<td> </td>
+		<td> </td>
+		<td><b>Cost</b></td>
+		
+ 	</tr>
+{% if test %}
+    {% for tests in test %}
+	<tr>
+			<td>{{ tests.id}}</td>
+			<td> </td>
+			<td> </td>
+			<td>{{tests.name}}</a> </td>
+			<td> </td>
+			<td> </td>
+			<td>{{tests.quantity}} {{tests.unit}}</a> </td>
+			<td> </td>
+			<td> </td>
+			<td>{{tests.cost}}</a> </td>
+</tr>
+        {% endfor %}
+{%endif %}
+</table> 
+
+</html>
+{% endblock %}
