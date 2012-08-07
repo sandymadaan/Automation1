@@ -101,7 +101,9 @@ INSTALLED_APPS = (
     'Automation.tcc',
     'tagging',
     'smart_selects',
+    
 )
+
 
 ACCOUNT_ACTIVATION_DAYS = 2
 EMAIL_HOST = 'localhost'

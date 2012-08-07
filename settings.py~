@@ -101,7 +101,16 @@ INSTALLED_APPS = (
     'Automation.tcc',
     'tagging',
     'smart_selects',
+    'haystack',
 )
+
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
+        'URL': 'http://127.0.0.1:9200/',
+        'INDEX_NAME': 'haystack',
+    },
+}
 
 ACCOUNT_ACTIVATION_DAYS = 2
 EMAIL_HOST = 'localhost'

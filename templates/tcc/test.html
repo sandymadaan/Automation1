@@ -5,8 +5,35 @@
 {% block content %}
 <div align="center"><h2>Catalog</h2></div>
 <div align="center"><h4>Tests for {{field.name}}</h4></div>
-<table>
+<div align="left"><table>
+	<tr><td><b>S.No</b></td>
+		<td> </td>
+		<td> </td>
+		<td><b>LAB</b></td>
+ 	</tr>
+
 	<tr>
+			<td>{{ lab.id}}</td>
+			<td> </td>
+			<td> </td>
+			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/field/?id={{ lab.id }}" >{{lab.name}}</a> </td>
+ 	</tr></table></div>
+	 
+	<div align="center"><table><tr>
+		<td><b>S.No</b></td>
+		<td> </td>
+		<td> </td>
+		<td><b>Field</b></td>
+ 	</tr>
+
+	<tr>
+			<td>{{ field.id}}</td>
+			<td> </td>
+			<td> </td>
+			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ field.id }}" >{{field.name}}</a> </td>
+</tr></tr></table></div>
+	 
+<div align="right"><table>	<tr>
 		<td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>
@@ -35,7 +62,7 @@
 </tr>
         {% endfor %}
 {%endif %}
-</table> 
+</table> </div>
 
 </html>
 {% endblock %}

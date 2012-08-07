@@ -7,13 +7,14 @@ including the tables, classes and mappers.
 """
 
 from django.db import models
-from django.forms import ModelForm, TextInput
+from django.forms import ModelForm, TextInput, ModelChoiceField
 import datetime
 from django import forms
 #from django.utils.translation import ugettext as _
 from Automation.tcc.choices import *
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
+from django.db.models import Max ,Q, Sum
 from django.forms.fields import DateField, ChoiceField, MultipleChoiceField
 from tagging.fields import TagField
 from smart_selects.db_fields import ChainedForeignKey
@@ -79,13 +80,17 @@ class Lab(models.Model):
 	def __unicode__(self):
         	return self.name
 
+#class DynamicMultipleChoiceField(forms.MultipleChoiceField):
+   # The only thing we need to override here is the validate function.  
+#    def validate(self, value):
+	#if self.required and not value:
+	#	raise ValidationError(self.error_messages['required'])
+
+
 class DynamicChoiceField(forms.ChoiceField): 
     def clean(self, value): 
-       return value
+        return value
 
-#class Field(forms.Form): 
-    #lab = ModelChoiceField(Lab.objects, widget=forms.Select(attrs={'onchange':'FilterModels();'})) 
- #   field = DynamicChoiceField(widget=forms.Select(attrs={'disabled':'true'}), choices=(('-1','Select Make'),))
 
 class Field(models.Model):
 	lab = models.ForeignKey(Lab)
@@ -94,6 +99,10 @@ class Field(models.Model):
 
 	def __unicode__(self):
         	return self.name
+
+class MyForm(forms.Form): 
+    field = forms.ModelChoiceField(Field.objects, widget=forms.Select(attrs={'onchange':'FilterTests();'})) 
+    test = DynamicChoiceField(widget=forms.Select(attrs={'disabled':'true'}), choices=(('-1','Select Field'),))
 
 class Test(models.Model):
 	#lab = models.ForeignKey(Lab)
@@ -106,7 +115,8 @@ class Test(models.Model):
 
 	def __unicode__(self):
         	return self.name
-	    
+
+	
          
 class ClientJob(models.Model):
 	"""
@@ -121,24 +131,69 @@ class ClientJob(models.Model):
 	date = models.DateField(default=datetime.date.today())
 	site = models.CharField(max_length=600, blank=True )
 	field = models.ForeignKey(Field)
+	material = models.ManyToManyField(Test, related_name="test")
 	#type_of_organisation = models.CharField(max_length=20,choices=ORGANISATION_CHOICES)
 	type_of_work = models.CharField(max_length=20,choices=ORGANISATION_CHOICES)
-	letter_no = models.CharField(max_length=100, blank=True,)
-	letter_date = models.CharField(blank=True, max_length=15 )
-	#file_disposal = models.CharField(max_length=20, choices=MATERIAL_CHOICES)
 	report_type = models.CharField(max_length=20,choices=REPORT_TYPE)
 
+'''class ClientJobForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(ClientJobForm, self).__init__(*args, **kwargs)
+	field = Field.objects.all()
+        self.fields['material'] = forms.ModelChoiceField(queryset=Test.objects.filter(field_id=field_id))
 
-class ClientJobForm(ModelForm):
-	class Meta :
-		model = ClientJob
-		exclude = ('report_type','type_of_consultancy',)
-		widgets = {
-            'site': TextInput(attrs={'size': 60}),
-            }
+    class Meta:
+        model = ClientJob'''
+		
+#   field=forms.ModelChoiceField(Field.objects.all())
+ #   test=forms.ModelChoiceField(Test.objects.none())
 
-	def __unicode__(self):
-        	return self.field
+    #def __init__(self, *args, **kwargs):
+    #    forms.Form.__init__(self, *args, **kwargs)
+     #   field=Field.objects.all()
+      #  if len(field)==1:
+       #     self.fields['field'].initial=field[0].pk
+
+        #field_id=self.fields['field'].initial or self.initial.get('field') \
+         #         or self._raw_value('field')
+       # if field_id:
+            # parent is known. Now I can display the matching children.
+        #    testz=test.objects.filter(field_id=field__id)
+         #   self.fields['testz'].queryset=testz
+          #  if len(testz)==1:
+           #     self.fields['testz'].initial=testz[0].pk
+
+
+'''class ClientJobForm(forms.Form):
+	fields = forms.ModelChoiceField(queryset = Field.objects.order_by('name'))
+	material = DynamicMultipleChoiceField(widget = forms.CheckboxSelectMultiple(), choices = [])
+
+	def filter_features(self, data):
+		tests = Test.objects.order_by('name')
+		query = data.get('filter_field_id', 0)
+
+		if query:
+			field = Field.objects.get(pk = query)
+			tests = tests.filter(field_id = field)
+
+		self.fields['material'].choices = [ (test.pk, test.name) for test in tests ] '''
+
+class TestsForm(ModelForm):
+
+    tests = forms.ModelMultipleChoiceField(queryset=Test.objects.all(), required=False,widget=forms.CheckboxSelectMultiple)
+
+    class Meta:
+        model = ClientJob
+	exclude = ('report_type','type_of_consultancy','field','client','date','site','type_of_work','letter_no','letter_date',)
+
+    def __init__(self):
+        super(TestsForm, self).__init__()
+	id = ClientJob.objects.aggregate(Max('job_no'))
+	maxid =id['job_no__max']
+	field = Field.objects.all()
+	client = ClientJob.objects.values_list('field_id',flat=True).filter(job_no = maxid)
+        self.fields['tests'].queryset = Test.objects.filter(field_id = client)
+
 
 class Amount(models.Model):
 	job_no = models.ForeignKey(ClientJob)

@@ -1,0 +1,4 @@
+from Automation.tcc.models import *
+
+fieldID = User.objects.get(fieldID=request.GET['fieldID'])
+testID = User.objects.get(testID=request.GET['testID'])
