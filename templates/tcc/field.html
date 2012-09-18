@@ -1,41 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
 <html>
 <head>
     <title>gne</title>
 </head>
 {% block content %}
 <div align="center"><h2>Catalog</h2></div>
-<div align="center"><h4>Field for {{lab.name}}</h4></div>
+<div align="center"><h4>Materials</h4></div>
 <div align="left"><table>
 	<tr><td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>
-		<td><b>LAB</b></td>
+		<td><b>Materials</b></td>
  	</tr>
 
-{% if lab %}
-    {% for labs in lab %}
-    {% for fields in field %}	<tr>
-			<td>{{ labs.id}}</td>
-			<td> </td>
-			<td> </td>
-			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/field/?id={{ labs.id }}" >{{labs.name}}</a> </td>
- 	</tr></table> </div>
-<div align="center"><table>	<tr>
-		<td><b>S.No</b></td>
-		<td> </td>
-		<td> </td>
-		<td><b>Field</b></td>
- 	</tr>
-
+{% if material %}
+    {% for materials in material %}	
+		
 	<tr>
-			<td>{{ fields.id}}</td>
+			<td>{{forloop.counter}}</td>
 			<td> </td>
 			<td> </td>
-			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ fields.id }}" >{{fields.name}}</a> </td>
+			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ materials.id }}" >{{materials.name}}</a> </td>
 </tr>
 	{% endfor %}
-        {% endfor %}
-{%endif %}
+{% endif %}
+        
 </table> </div>
 
 </html>

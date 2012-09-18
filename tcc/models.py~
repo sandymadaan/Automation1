@@ -17,16 +17,20 @@ from django.db.models.signals import post_save
 from django.db.models import Max ,Q, Sum
 from django.forms.fields import DateField, ChoiceField, MultipleChoiceField
 from tagging.fields import TagField
-from smart_selects.db_fields import ChainedForeignKey
+from tagging.models import Tag
+#from smart_selects.db_fields import ChainedForeignKey
+from django.contrib.sessions.models import Session
+from easy_maps.widgets import AddressWithMapWidget
 
 class Report(models.Model):
 	"""
 	Define Client Report Form to reterive any Report Information,
 	when we fill Job Number and type of Report Store in Database
 	"""
-	id = models.IntegerField(primary_key=True)
-	type_of_report = models.CharField(max_length=50)
+	name = models.CharField(max_length=50)
 
+	def __unicode__(self):
+        	return self.name
 
 class UserProfile(models.Model):
     # This field is required.
@@ -49,7 +53,8 @@ class UserProfile(models.Model):
 
 class UserProfileForm(ModelForm):
 	class Meta :
-		model = UserProfile	
+		model = UserProfile
+		exclude= ['user']	
 		widgets = {
             'name': TextInput(attrs={'size': 30}),
             'address_1': TextInput(attrs={'size': 30}),
@@ -60,13 +65,6 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         created = UserProfile.objects.get_or_create(user=instance)
 post_save.connect(create_user_profile, sender=User)
-
-
-#def get_my_lab(request):
-#	lab = Lab.objects.all().order_by('name')
- #       return lab[]
-				
-
  
 
 class Auto_number(models.Model):
@@ -76,9 +74,13 @@ class Auto_number(models.Model):
 class Lab(models.Model):
 	code = models.CharField(max_length=5)
 	name = models.CharField(max_length=300)
+	tags = TagField()
 
 	def __unicode__(self):
         	return self.name
+
+	def get_tags(self):
+        	return Tag.objects.get_for_object(self) 
 
 #class DynamicMultipleChoiceField(forms.MultipleChoiceField):
    # The only thing we need to override here is the validate function.  
@@ -92,32 +94,63 @@ class DynamicChoiceField(forms.ChoiceField):
         return value
 
 
-class Field(models.Model):
+class Material(models.Model):
 	lab = models.ForeignKey(Lab)
 	code = models.CharField(max_length=5)
 	name = models.CharField(max_length=300)
+	tags = TagField()
+	report = models.ForeignKey(Report)
 
 	def __unicode__(self):
         	return self.name
 
+	def get_tags(self):
+        	return Tag.objects.get_for_object(self) 
+
 class MyForm(forms.Form): 
-    field = forms.ModelChoiceField(Field.objects, widget=forms.Select(attrs={'onchange':'FilterTests();'})) 
-    test = DynamicChoiceField(widget=forms.Select(attrs={'disabled':'true'}), choices=(('-1','Select Field'),))
+    material = forms.ModelChoiceField(Material.objects, widget=forms.Select(attrs={'onchange':'FilterTests();'})) 
+    test = DynamicChoiceField(widget=forms.Select(attrs={'disabled':'false'}), choices=(('-1','Select Tests'),))
 
 class Test(models.Model):
 	#lab = models.ForeignKey(Lab)
-	field = models.ForeignKey(Field)
+	material = models.ForeignKey(Material)
 	code = models.CharField(max_length=5)
 	name = models.CharField(max_length=300)
 	quantity = models.IntegerField(blank=True, null=True)
 	unit = models.CharField(max_length=15)
 	cost = models.IntegerField(blank=True, null=True)
+	tags = TagField()
+
+	def __unicode__(self):
+        	return self.name
+	
+	def get_tags(self):
+        	return Tag.objects.get_for_object(self) 
+
+	
+         
+
+
+class Job(models.Model):
+	place =models.CharField(max_length=600, blank=True )
+	test = models.ManyToManyField(Test)
+
+class JobForm(forms.ModelForm):
+	class Meta :
+		model = Job
+		
+class Govt(models.Model):
+	name =	models.CharField(max_length=600, blank=True )
 
 	def __unicode__(self):
         	return self.name
 
-	
-         
+class Payment(models.Model):
+	name = models.CharField(max_length = 50,blank =True)
+
+	def __unicode__(self):
+        	return self.name
+
 class ClientJob(models.Model):
 	"""
 	:ClientJob:
@@ -125,56 +158,57 @@ class ClientJob(models.Model):
 	ClientJob Class is define all field reqiued to submit detail about new Job.
 	
 	""" 
-        client = models.ForeignKey(UserProfile)
-	job_no = models.AutoField(primary_key=True)
-	type_of_consultancy = models.CharField(max_length=15,choices=CONSULTANCY_CHOICES)
-	date = models.DateField(default=datetime.date.today())
+        client = models.ForeignKey(User)
+	#job_no = models.AutoField(primary_key=True)
+	job_no = models.IntegerField(editable =False)
 	site = models.CharField(max_length=600, blank=True )
-	field = models.ForeignKey(Field)
-	material = models.ManyToManyField(Test, related_name="test")
+	material = models.ForeignKey(Material)
+	test = models.ManyToManyField(Test)
 	#type_of_organisation = models.CharField(max_length=20,choices=ORGANISATION_CHOICES)
-	type_of_work = models.CharField(max_length=20,choices=ORGANISATION_CHOICES)
-	report_type = models.CharField(max_length=20,choices=REPORT_TYPE)
+	type_of_work = models.ForeignKey(Govt)
+	report_type = models.ForeignKey(Report)
 
-'''class ClientJobForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super(ClientJobForm, self).__init__(*args, **kwargs)
-	field = Field.objects.all()
-        self.fields['material'] = forms.ModelChoiceField(queryset=Test.objects.filter(field_id=field_id))
-
-    class Meta:
-        model = ClientJob'''
-		
-#   field=forms.ModelChoiceField(Field.objects.all())
- #   test=forms.ModelChoiceField(Test.objects.none())
-
-    #def __init__(self, *args, **kwargs):
-    #    forms.Form.__init__(self, *args, **kwargs)
-     #   field=Field.objects.all()
-      #  if len(field)==1:
-       #     self.fields['field'].initial=field[0].pk
-
-        #field_id=self.fields['field'].initial or self.initial.get('field') \
-         #         or self._raw_value('field')
-       # if field_id:
-            # parent is known. Now I can display the matching children.
-        #    testz=test.objects.filter(field_id=field__id)
-         #   self.fields['testz'].queryset=testz
-          #  if len(testz)==1:
-           #     self.fields['testz'].initial=testz[0].pk
+	def __unicode__(self):
+          return self.id()
 
 
+
+class ClientJobForm(forms.ModelForm):
+	#test = forms.ModelMultipleChoiceField(queryset= Test.objects.all(), required=False, widget=forms.CheckboxSelectMultiple)
+
+	class Meta :
+		model = ClientJob
+		exclude= ['client','job_no','material']
+                widgets = {'site': AddressWithMapWidget({'class': 'vTextField'})}
+
+class TestTotal(models.Model):
+	job_no = models.IntegerField(editable =False)
+	mat = models.IntegerField(editable =True,null=True)
+	unit_price = models.IntegerField(blank=True,null=True)
+	type = models.CharField(max_length=100,blank=True,null=True)
+
+	def __unicode__(self):
+        	return self.id
+
+class TestTotalForm(forms.ModelForm):
+	class Meta :
+		model = TestTotal
+
+	
+	
+class Sessiondata(models.Model):
+	amt = models.IntegerField(blank=True,null=True)
 '''class ClientJobForm(forms.Form):
-	fields = forms.ModelChoiceField(queryset = Field.objects.order_by('name'))
-	material = DynamicMultipleChoiceField(widget = forms.CheckboxSelectMultiple(), choices = [])
+	material = forms.ModelChoiceField(queryset = Material.objects.order_by('name'))
+#	material = DynamicMultipleChoiceField(widget = forms.CheckboxSelectMultiple(), choices = [])
 
 	def filter_features(self, data):
 		tests = Test.objects.order_by('name')
-		query = data.get('filter_field_id', 0)
+		query = data.get('filter_material_id', 0)
 
 		if query:
-			field = Field.objects.get(pk = query)
-			tests = tests.filter(field_id = field)
+			material = Material.objects.get(pk = query)
+			tests = tests.filter(material_id = material)
 
 		self.fields['material'].choices = [ (test.pk, test.name) for test in tests ] '''
 
@@ -195,27 +229,26 @@ class TestsForm(ModelForm):
         self.fields['tests'].queryset = Test.objects.filter(field_id = client)
 
 
-class Amount(models.Model):
-	job_no = models.ForeignKey(ClientJob)
-	#date = models.DateField(default=datetime.date.today(), editable=False)
-	lab = models.ForeignKey(Lab)
-	college_income = models.IntegerField(blank=True, null=True)
-	admin_charge = models.IntegerField(blank=True,null=True)
-	consultancy_asst = models.IntegerField(blank=True,null=True)
-	development_fund = models.IntegerField(blank=True,null=True)
-	total = models.IntegerField(blank=True,null=True)
+class Bill(models.Model):
+	job_no = models.IntegerField(primary_key=True, editable =False)
 	education_tax = models.IntegerField(blank=True,null=True)
 	higher_education_tax = models.IntegerField(blank=True,null=True)
 	service_tax = models.IntegerField(blank=True,null=True)
 	net_total = models.IntegerField(blank=True,null=True)
-	tds = models.IntegerField(blank=True,null=True)
-	balance = models.IntegerField(blank=True,null=True)
-	field = models.ForeignKey(Field)
-	#field = models.CharField(max_length=100,choices=FIELD_CHOICES)
-	other_field = models.CharField(max_length=100,blank=True,null=True)
-	report_type = models.CharField(max_length=20,editable=False)
-        type = models.CharField(max_length=10, choices=PAYMENT_CHOICES) 
-   
+	price = models.IntegerField(blank=True,null=True)
+
+class BillForm(ModelForm):
+	class Meta :
+		model = Bill
+
+class Amount(models.Model):
+	job_no = models.IntegerField(blank=True,null=True)
+	college_income = models.IntegerField(blank=True, null=True)
+	admin_charge = models.IntegerField(blank=True,null=True)
+	consultancy_asst = models.IntegerField(blank=True,null=True)
+	development_fund = models.IntegerField(blank=True,null=True)
+	unit_price = models.IntegerField(blank=True,null=True)
+		
         def __unicode__(self):
           return self.id()
 
@@ -287,6 +320,9 @@ class Staff(models.Model):
 	position = models.CharField(max_length=15)
 	lab = models.ForeignKey(Lab)
 	email =models.EmailField(blank=True)
+
+	def __unicode__(self):
+        	return self.name
 	
 
 class Proformabill(models.Model):
@@ -372,6 +408,9 @@ class Ta_DaForm(ModelForm):
 class Transportation(models.Model):
 	vehicleno = models.CharField(max_length=150)
 	rate = models.IntegerField(default='7')
+
+       	def __str__(self):
+          return '%s %s' % (self.vehicleno, self.rate)
 
 class Transport(models.Model):
 	"""

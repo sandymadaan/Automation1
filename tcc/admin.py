@@ -2,9 +2,11 @@ from django.contrib import admin
 from Automation.tcc.models import *
 
 class ClientJobAdmin(admin.ModelAdmin):
-    list_display = ('job_no', 'client','type_of_consultancy','site' )
+    list_display = ('job_no', 'client','site' )
     search_fields = ('job_no',)
-    list_filter = ['date']
+    list_filter = ['job_no']
+
+
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name','address_1','address_2','state','city' )
@@ -22,13 +24,29 @@ class LabAdmin(admin.ModelAdmin):
     search_fields = ('code',)
     list_filter = ['code']
 
-class FieldAdmin(admin.ModelAdmin):
-    list_display = ('lab','code', 'name' )
+class GovtAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name' )
+    search_fields = ('name',)
+    list_filter = ['name']
+
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name' )
+    search_fields = ('name',)
+    list_filter = ['name']
+
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name' )
+    search_fields = ('name',)
+    list_filter = ['name']
+
+
+class MaterialAdmin(admin.ModelAdmin):
+    list_display = ('lab','code', 'name','report' )
     search_fields = ('code',)
     list_filter = ['code']
 
 class TestAdmin(admin.ModelAdmin):
-    list_display = ('field','code', 'name','quantity','unit','cost' )
+    list_display = ('material','code', 'name','quantity','unit','cost' )
     search_fields = ('code',)
     list_filter = ['code']
 
@@ -47,11 +65,19 @@ class StaffAdmin(admin.ModelAdmin):
     search_fields = ('code',)
     list_filter = ['code']
 
+class TransportationAdmin(admin.ModelAdmin):
+    list_display = ('vehicleno','rate')
+    search_fields = ('vehicleno',)
+    list_filter = ['vehicleno']
+
+admin.site.register(Payment, PaymentAdmin)
 admin.site.register(Lab, LabAdmin)
-admin.site.register(Field, FieldAdmin)
+admin.site.register(Govt, GovtAdmin)
+admin.site.register(Report, ReportAdmin)
+admin.site.register(Material, MaterialAdmin)
 admin.site.register(Test, TestAdmin)
 admin.site.register(ClientJob, ClientJobAdmin)
 admin.site.register(Organisation, OrganisationAdmin)
 admin.site.register(Department, DepartmentAdmin)
 admin.site.register(Staff, StaffAdmin)
-
+admin.site.register(Transportation, TransportationAdmin)

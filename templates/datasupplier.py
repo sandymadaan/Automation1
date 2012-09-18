@@ -1,5 +1,5 @@
 from Automation.tcc.models import *
 
-fieldID = User.objects.get(fieldID=request.GET['fieldID'])
-testID = Test.objects.filter(field_id = fieldID)
-
+query =request.GET.get('material')
+test = Test.objects.all().filter(material_id = 5)
+print(test)

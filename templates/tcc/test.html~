@@ -1,43 +1,35 @@
+
+{% load i18n %}
 <html>
 <head>
     <title>gne</title>
 </head>
 {% block content %}
 <div align="center"><h2>Catalog</h2></div>
-<div align="center"><h4>Tests for {{field.name}}</h4></div>
+<br/>
 <div align="left"><table>
 	<tr><td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>
-		<td><b>LAB</b></td>
+		<td><b>Materials</b></td>
  	</tr>
 
+{% if field %}
+    {% for fields in field %}	
+		
 	<tr>
-			<td>{{ lab.id}}</td>
+			<td>{{forloop.counter}}</td>
 			<td> </td>
 			<td> </td>
-			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/field/?id={{ labs.id }}" >{{lab.name}}</a> </td>
- 	</tr></table></div>
-	 
-	<div align="center"><table><tr>
+			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ fields.id }}" >{{fields.name}}</a> </td>
+</tr>
+	{% endfor %}
+{% endif %}</table>
+<div align="center"><table>	<tr>
 		<td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>
-		<td><b>Field</b></td>
- 	</tr>
-
-	<tr>
-			<td>{{ field.id}}</td>
-			<td> </td>
-			<td> </td>
-			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ fields.id }}" >{{field.name}}</a> </td>
-</tr></tr></table></div>
-	 
-<div align="right"><table>	<tr>
-		<td><b>S.No</b></td>
-		<td> </td>
-		<td> </td>
-		<td><b>Test</b></td>
+		<td><b>Test for {{material.name}}</b></td>
 		<td> </td>
 		<td> </td>
 		<td><b>Quantity</b></td>
@@ -49,7 +41,7 @@
 {% if test %}
     {% for tests in test %}
 	<tr>
-			<td>{{ tests.id}}</td>
+			<td>{{ forloop.counter}}</td>
 			<td> </td>
 			<td> </td>
 			<td>{{tests.name}}</a> </td>

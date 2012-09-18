@@ -66,6 +66,7 @@ AUTH_PROFILE_MODULE = 'tcc.UserProfile'
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '@3t%hg=e4%fuwrxhq#qm4gp!%0albmve6natdxiqoxcx8#8$wd'
 
+EASY_MAPS_GOOGLE_KEY = "AIzaSyDRekokepCbXBsF7DC8uyR_95pikeWdPqc"
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
@@ -79,6 +80,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.cache.UpdateCacheMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware',
 )
 
 ROOT_URLCONF = 'Automation.urls'
@@ -88,6 +92,17 @@ TEMPLATE_DIRS = ("/home/sandeep/Automation/templates"
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 )
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+	'TIMEOUT': 60,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
+}
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -101,16 +116,12 @@ INSTALLED_APPS = (
     'Automation.tcc',
     'tagging',
     'smart_selects',
-    'haystack',
+    'catalog',
+    'catalog.contrib.defaults',
+    'cart',
+    'easy_maps',
 )
 
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
-        'URL': 'http://127.0.0.1:9200/',
-        'INDEX_NAME': 'haystack',
-    },
-}
 
 ACCOUNT_ACTIVATION_DAYS = 2
 EMAIL_HOST = 'localhost'
