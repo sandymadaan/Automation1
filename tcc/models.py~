@@ -10,7 +10,6 @@ from django.db import models
 from django.forms import ModelForm, TextInput, ModelChoiceField
 import datetime
 from django import forms
-#from django.utils.translation import ugettext as _
 from Automation.tcc.choices import *
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
@@ -18,9 +17,7 @@ from django.db.models import Max ,Q, Sum
 from django.forms.fields import DateField, ChoiceField, MultipleChoiceField
 from tagging.fields import TagField
 from tagging.models import Tag
-#from smart_selects.db_fields import ChainedForeignKey
 from django.contrib.sessions.models import Session
-from easy_maps.widgets import AddressWithMapWidget
 
 class Report(models.Model):
 	"""
@@ -55,11 +52,6 @@ class UserProfileForm(ModelForm):
 	class Meta :
 		model = UserProfile
 		exclude= ['user']	
-		widgets = {
-            'name': TextInput(attrs={'size': 30}),
-            'address_1': TextInput(attrs={'size': 30}),
-            'address_1': TextInput(attrs={'size': 30}),
-			}
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -81,12 +73,6 @@ class Lab(models.Model):
 
 	def get_tags(self):
         	return Tag.objects.get_for_object(self) 
-
-#class DynamicMultipleChoiceField(forms.MultipleChoiceField):
-   # The only thing we need to override here is the validate function.  
-#    def validate(self, value):
-	#if self.required and not value:
-	#	raise ValidationError(self.error_messages['required'])
 
 
 class DynamicChoiceField(forms.ChoiceField): 
@@ -128,17 +114,7 @@ class Test(models.Model):
         	return Tag.objects.get_for_object(self) 
 
 	
-         
-
-
-class Job(models.Model):
-	place =models.CharField(max_length=600, blank=True )
-	test = models.ManyToManyField(Test)
-
-class JobForm(forms.ModelForm):
-	class Meta :
-		model = Job
-		
+	
 class Govt(models.Model):
 	name =	models.CharField(max_length=600, blank=True )
 
@@ -151,35 +127,64 @@ class Payment(models.Model):
 	def __unicode__(self):
         	return self.name
 
-class ClientJob(models.Model):
+class Job(models.Model):
 	"""
-	:ClientJob:
+	**ClientJob**
 	
-	ClientJob Class is define all field reqiued to submit detail about new Job.
+	ClientJob Class is define all field required to submit detail about new Job.
 	
 	""" 
         client = models.ForeignKey(User)
-	#job_no = models.AutoField(primary_key=True)
 	job_no = models.IntegerField(editable =False)
 	site = models.CharField(max_length=600, blank=True )
-	material = models.ForeignKey(Material)
-	test = models.ManyToManyField(Test)
-	#type_of_organisation = models.CharField(max_length=20,choices=ORGANISATION_CHOICES)
 	type_of_work = models.ForeignKey(Govt)
 	report_type = models.ForeignKey(Report)
+	pay = models.CharField(max_length=600, blank=True )
 
 	def __unicode__(self):
           return self.id()
 
 
+class JobForm(forms.ModelForm):
+	class Meta :
+		model = Job
+		exclude= ['client','job_no','report_type','pay']
+               
+	
+class ClientJob(models.Model):
+	job = models.ForeignKey(Job)
+	material = models.ForeignKey(Material)
+	test = models.ManyToManyField(Test)
+	
+	def __unicode__(self):
+          return self.id()
 
 class ClientJobForm(forms.ModelForm):
-	#test = forms.ModelMultipleChoiceField(queryset= Test.objects.all(), required=False, widget=forms.CheckboxSelectMultiple)
-
 	class Meta :
 		model = ClientJob
-		exclude= ['client','job_no','material']
-                widgets = {'site': AddressWithMapWidget({'class': 'vTextField'})}
+		exclude= ['job','material']
+
+
+class SuspenceJob(models.Model):
+	"""
+	**SuspenceJob**
+	
+	SuspenceJob Class is used to define all fields required to submit detail about new Suspence Job.
+	
+	""" 
+	job = models.ForeignKey(Job)
+	field = models.ForeignKey(Material)
+	test = models.ForeignKey(Test)
+	other = models.CharField(max_length=600, blank=True )
+	
+
+	def __unicode__(self):
+          return self.id()
+
+class SuspenceJobForm(forms.ModelForm):
+	class Meta :
+		model = SuspenceJob
+		exclude= ['job','field','test']
 
 class TestTotal(models.Model):
 	job_no = models.IntegerField(editable =False)
@@ -198,19 +203,7 @@ class TestTotalForm(forms.ModelForm):
 	
 class Sessiondata(models.Model):
 	amt = models.IntegerField(blank=True,null=True)
-'''class ClientJobForm(forms.Form):
-	material = forms.ModelChoiceField(queryset = Material.objects.order_by('name'))
-#	material = DynamicMultipleChoiceField(widget = forms.CheckboxSelectMultiple(), choices = [])
 
-	def filter_features(self, data):
-		tests = Test.objects.order_by('name')
-		query = data.get('filter_material_id', 0)
-
-		if query:
-			material = Material.objects.get(pk = query)
-			tests = tests.filter(material_id = material)
-
-		self.fields['material'].choices = [ (test.pk, test.name) for test in tests ] '''
 
 class TestsForm(ModelForm):
 
@@ -271,11 +264,23 @@ class CdfAmountForm(ModelForm):
 	class Meta :
 		model = CdfAmount	
 	
+class Distance(models.Model):
+    	job =models.IntegerField(editable =False)
+    	sandy = models.DecimalField(max_digits=10, decimal_places=3)
+
+class DistanceForm(ModelForm):
+	class Meta :
+		model = Distance
+		exclude= ['job']
+	
+	def __unicode__(self):
+        	return self.id
+
+
+
 class Suspence(models.Model):
-	job_no = models.ForeignKey(ClientJob)
-	type = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
-	check_number = models.CharField(max_length=15,blank=True)
-	check_dd_date = models.CharField(blank=True, max_length=15)
+	dist = models.ForeignKey(Distance)
+	sus = models.ForeignKey(SuspenceJob)
 	work_charge = models.IntegerField(null=True, blank=True)
 	labour_charge = models.IntegerField( blank=True, null=True)
 	boring_charge_external = models.IntegerField( blank=True, null=True)
@@ -436,3 +441,5 @@ class Bankdetails(models.Model):
 	accountno = models.IntegerField(null=False)
 	accountcode = models.CharField(max_length=50)
 	address = models.CharField(max_length=150)
+
+

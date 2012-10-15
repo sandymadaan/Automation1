@@ -1,15 +1,12 @@
 from django.contrib import admin
 from Automation.tcc.models import *
-from easy_maps.widgets import AddressWithMapWidget
 
-class ClientJobAdmin(admin.ModelAdmin):
+class JobAdmin(admin.ModelAdmin):
     list_display = ('job_no', 'client','site' )
     search_fields = ('job_no',)
     list_filter = ['job_no']
 
-class form(forms.ModelForm):
-        class Meta:
-            widgets = {'address': AddressWithMapWidget({'class': 'vTextField'})
+
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name','address_1','address_2','state','city' )

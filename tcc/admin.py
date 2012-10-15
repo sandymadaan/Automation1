@@ -1,7 +1,7 @@
 from django.contrib import admin
 from Automation.tcc.models import *
 
-class ClientJobAdmin(admin.ModelAdmin):
+class JobAdmin(admin.ModelAdmin):
     list_display = ('job_no', 'client','site' )
     search_fields = ('job_no',)
     list_filter = ['job_no']
@@ -76,7 +76,7 @@ admin.site.register(Govt, GovtAdmin)
 admin.site.register(Report, ReportAdmin)
 admin.site.register(Material, MaterialAdmin)
 admin.site.register(Test, TestAdmin)
-admin.site.register(ClientJob, ClientJobAdmin)
+admin.site.register(Job, JobAdmin)
 admin.site.register(Organisation, OrganisationAdmin)
 admin.site.register(Department, DepartmentAdmin)
 admin.site.register(Staff, StaffAdmin)

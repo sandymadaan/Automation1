@@ -17,24 +17,19 @@ from Automation.tcc.convert_function import *
 from tagging.models import Tag, TaggedItem
 #from cart import Cart
 from django.contrib.sessions.models import Session
-from django.views.decorators.cache import cache_page
-from gmapi import maps
-from gmapi.forms.widgets import GoogleMap
 
-register = template.Library()
 
-@register.inclusion_tag("field_test_select.html")
 def material_test_select(request):
-    material_list = Material.objects.all()
-    testID = Test.objects.all()
+    material = Material.objects.all()
+    test = Test.objects.all()
 
-    return render_to_response('field_test_select.html', {'material_list' : material_list,'testID':testID}, context_instance=RequestContext(request))
+    return render_to_response('tcc/dynamicdrop1.html', {'material' : material,'test':test}, context_instance=RequestContext(request))
 
 @login_required
 def index1(request):
 	title = get_object_or_404(Department, pk='1')
 	address = get_object_or_404(Organisation, pk='1')
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	if maxid== None :
 		maxid = 1
@@ -81,7 +76,7 @@ def performa(request):
 def previous(request):
 	title = get_object_or_404(Department, pk='1')
 	client = request.user
-	job = ClientJob.objects.all().filter(client_id =client)
+	job = Job.objects.all().filter(client_id =client)
 	return render_to_response('tcc/previous.html', {'job':job,'title':title}, context_instance=RequestContext(request))
 
 @login_required
@@ -105,21 +100,6 @@ def rate(request):
 	test = Test.objects.filter(material_id = material)
 	return render_to_response('tcc/test.html', {'lab':lab,'test':test,'material':material,'field':field}, context_instance=RequestContext(request))
 
-class MapForm(forms.Form):
-    map = forms.Field(widget=GoogleMap(attrs={'width':510, 'height':510}))
-
-
-def displaymap(request):
-    gmap = maps.Map(opts = {
-        'center': maps.LatLng(38, -97),
-        'mapTypeId': maps.MapTypeId.ROADMAP,
-        'zoom': 3,
-        'mapTypeControlOptions': {
-             'style': maps.MapTypeControlStyle.DROPDOWN_MENU
-        },
-    })
-    context = {'form': MapForm(initial={'map': gmap})}
-    return render_to_response('tcc/map.html', context)
 
 
 @login_required
@@ -130,76 +110,166 @@ def all_tcc_fields(request, lab):
     return HttpResponse(tcc_fields, mimetype="application/javascript")
 
 @login_required
+def selectfield(request):
+	report = Report.objects.all()
+	mat = Material.objects.all()
+	return render_to_response('tcc/typeofwork.html',{'report':report,'mat':mat}, context_instance=RequestContext(request))
+
+@login_required
 def select(request):
-	field_list = Material.objects.all()
-	return render_to_response('tcc/tags.html',{'field_list':field_list}, context_instance=RequestContext(request))
+	report = Report.objects.all()
+	mat = Material.objects.all()
+	material = Report.objects.get(id=request.GET['id'])
+	field_list = Material.objects.all().filter(report_id =material)
+	return render_to_response('tcc/tags.html',{'field_list':field_list,'report':report,'mat':mat}, context_instance=RequestContext(request))
 
 @login_required
 def selectcart(request):
-	field_list = Material.objects.all()
+	material = Report.objects.get(id=request.GET['id'])
+	field_list = Material.objects.all().filter(report_id =material)
 	return render_to_response('tcc/tags1.html',{'field_list':field_list}, context_instance=RequestContext(request))
 
+
+	
 @login_required
 def add_job(request):
-	field_list = Material.objects.all()
+	report = Report.objects.all()
+	field_list = Material.objects.all().filter(report_id = 2)
 	query =request.GET.get('q', '')
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	id = Bill.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	if maxid== None :
 		maxid = 1
 	else:
-		maxid = maxid + 1
-	report = Report.objects.all()
+		maxid = maxid +1
 	work = Govt.objects.all()
 	payment = Payment.objects.all()
 	material =Material.objects.get(id=request.GET['q'])
 	test = Test.objects.all().filter(material_id = query)
-	if request.method=='POST':
-		form = ClientJobForm(request.POST)
-  		if form.is_valid():
-			cd = form.cleaned_data
-			site = cd['site']
-			test = request.POST.getlist('test')
-			selected_work = get_object_or_404(Govt, pk=request.POST.get('type_of_work'))
-			selected_report = get_object_or_404(Report, pk=request.POST.get('report_type'))
-			profile = form.save(commit=False)
-			#request.session.save()
-			profile.job_no = maxid
-			mat =Material.objects.get(id=request.GET['q'])
-			profile.material = mat
-			profile.client = request.user
-			profile.type_of_work = selected_work
-			profile.report_type = selected_report
-			profile.save()
-        		form.save_m2m()
-			mee = ClientJob.objects.aggregate(Max('id'))
-			minid =mee['id__max']
-			client = ClientJob.objects.get(id=minid)
-			value = ClientJob.objects.values_list('test').filter(id=minid)
-			values = Test.objects.values_list('cost',flat=True).filter(id__in = value)
-			unit_price = sum(values)
-			job_no = client.job_no
-			mat = client.material_id
-			if mat == 1 or mat == 2 or mat == 3 or mat == 4 or mat == 5 :
-				type = "ROUTINE"
-			else:
-				type = "INSTITUTIONAL"
-			p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
-			p.save()
-			from Automation.tcc.variable import *
-			college_income = round(collegeincome * unit_price / 100.00)
-			admin_charge = round(admincharge * unit_price / 100.00)
-			temp =  unit_price - college_income - admin_charge
-			ratio1 = ratio1(type)
-			ratio2 = ratio2(type)
-			consultancy_asst = round(ratio1 * temp / 100)
-			development_fund = round(ratio2 * temp / 100)
-			m = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = 	college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,)
-			m.save()
-			return render_to_response('tcc/job_submit.html',{'test':test,'site':site}, context_instance=RequestContext(request))
+	if material.report_id == 1:
+		if request.method=='POST':
+			form1 = JobForm(request.POST)
+			form2 = ClientJobForm(request.POST)
+			if form1.is_valid and form2.is_valid():
+				profile = form1.save(commit=False)
+				profile.job_no = maxid
+				profile.client = request.user
+				report = Report.objects.get(id=1)
+				profile.report_type = report
+				profile.save()
+				form1.save_m2m()
+				test = request.POST.getlist('test')
+       				profile1 = form2.save(commit=False)		
+				profile1.material = material
+				client = Job.objects.get(id =maxid)
+				profile1.job = client
+				profile1.save()
+				form2.save_m2m()
+				if profile.report_type == "1":
+					return HttpResponseRedirect(reverse('Automation.tcc.views.add_suspence'))
+				else :
+					return HttpResponseRedirect(reverse('Automation.tcc.views.gen_report'))
+		else:	
+			form1 = JobForm()
+			form2 = ClientJobForm()
+		return render_to_response('tcc/add_job.html', {"form1": form1,"test":test,'field_list':field_list,'payment':payment,'work':work,"report":report}, context_instance=RequestContext(request))
+	else :
+		if request.method=='POST':
+			form1 = JobForm(request.POST)
+			form2 = SuspenceJobForm(request.POST)
+  			if form1.is_valid and form2.is_valid():
+				profile = form1.save(commit=False)
+				profile.job_no = maxid
+				profile.client = request.user
+				report = Report.objects.get(id=2)
+				profile.report_type = report
+				profile.save()
+        			form1.save_m2m()
+				profile1 = form2.save(commit=False)		
+				profile1.field = material
+				client = Job.objects.get(id =maxid)
+				profile1.job = client
+				sel_test = get_object_or_404(Test, pk=request.POST.get('test'))
+				profile1.test = sel_test
+				profile1.save()
+				form2.save_m2m()
+				return HttpResponseRedirect(reverse('Automation.tcc.views.add_suspence'))
+		else:	
+			form1 = JobForm()
+			form2 = SuspenceJobForm()
+		return render_to_response('tcc/add_suspence.html', {"form1": form1,"test":test,'field_list':field_list,'payment':payment,'work':work,"report":report}, context_instance=RequestContext(request))
+	
+def add_suspence(request):
+	mee = SuspenceJob.objects.aggregate(Max('id'))
+	minid =mee['id__max']
+	client = SuspenceJob.objects.get(id=minid)
+	value = SuspenceJob.objects.values_list('test').filter(id=minid)
+	values = Test.objects.get(id = value)
+	unit_price = int(client.other)*int(values.cost)+int(values.quantity)
+	job_no = client.job_id
+	mat = client.field_id
+	test = Test.objects.all().filter(material_id = mat)
+	if mat == 7 or mat == 8 or mat == 9 or mat == 10 or mat == 11 :
+		type = "INSITUTIONAL"
 	else:
-		form = ClientJobForm()
-	return render_to_response('tcc/add_job.html', {"form": form,"test":test,"report":report,'field_list':field_list,'payment':payment,'work':work}, context_instance=RequestContext(request))
+		type = "ROUTINE"
+	p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
+	p.save()
+	dist = Distance.objects.get(job = minid)
+	distance = dist.sandy 
+	rate = 7*distance
+	sus = client
+	m = Suspence(rate=rate, sus=sus)
+	m.save()
+	return HttpResponseRedirect(reverse('Automation.tcc.views.job_submit'))
+
+'''def job_submit1(request):
+	mee = SuspenceJob.objects.aggregate(Max(''))
+	minid =mee['id__max']
+	client = Job.objects.get(id=minid)
+	value = client.report_type_id
+	return render_to_response('tcc/job_submit.html',{'mee':mee,'minid':minid,'value':value}, context_instance=RequestContext(request))'''
+
+def gen_report(request):
+	mee = Job.objects.aggregate(Max('id'))
+	minid =mee['id__max']
+	client = Job.objects.get(id=minid)
+	gen = ClientJob.objects.aggregate(Max('id'))
+	genid =gen['id__max']
+	clients = ClientJob.objects.get(id =genid)
+	value = ClientJob.objects.values_list('test').filter(id=genid)
+	values = Test.objects.values_list('cost',flat=True).filter(id__in = value)
+	unit_price = sum(values)
+	job_no = client.job_no
+	mat = clients.material_id
+	test = Test.objects.all().filter(material_id = mat)
+	if mat == 1 or mat == 2 or mat == 3 or mat == 4 or mat == 5 :
+		type = "ROUTINE"
+	else:
+		type = "INSTITUTIONAL"
+	p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
+	p.save()
+	from Automation.tcc.variable import *
+	college_income = round(collegeincome * unit_price / 100.00)
+	admin_charge = round(admincharge * unit_price / 100.00)
+	temp =  unit_price - college_income - admin_charge
+	ratio1 = ratio1(type)
+	ratio2 = ratio2(type)
+	consultancy_asst = round(ratio1 * temp / 100)
+	development_fund = round(ratio2 * temp / 100)
+	m = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = 	college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,)
+	m.save()
+	return HttpResponseRedirect(reverse('Automation.tcc.views.job_submit'))
+
+def job_submit(request):
+	mee = Job.objects.aggregate(Max('id'))
+	minid =mee['id__max']
+	client = Job.objects.get(id=minid)
+	value = client.report_type_id
+	return render_to_response('tcc/job_submit.html',{'mee':mee,'minid':minid,'value':value}, context_instance=RequestContext(request))
+	
+
+
 	
 @login_required
 def add_to_cart(request):
@@ -232,35 +302,18 @@ def add_to_cart(request):
 			profile.report_type = selected_report
 			profile.save()
         		form.save_m2m()
-			mee = ClientJob.objects.aggregate(Max('id'))
-			minid =mee['id__max']
-			client = ClientJob.objects.get(id=minid)
-			value = ClientJob.objects.values_list('test').filter(id=minid)
-			values = Test.objects.values_list('cost',flat=True).filter(id__in = value)
-			unit_price = sum(values)
-			job_no = client.job_no
-			mat = client.material_id
-			if mat == 1 or mat == 2 or mat == 3 or mat == 4 or mat == 5 :
-				type = "ROUTINE"
-			else:
-				type = "INSTITUTIONAL"
-			p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
-			p.save()
-			from Automation.tcc.variable import *
-			college_income = round(collegeincome * unit_price / 100.00)
-			admin_charge = round(admincharge * unit_price / 100.00)
-			temp =  unit_price - college_income - admin_charge
-			ratio1 = ratio1(type)
-			ratio2 = ratio2(type)
-			consultancy_asst = round(ratio1 * temp / 100)
-			development_fund = round(ratio2 * temp / 100)
-			m = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = 	college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,)
-			m.save()
-			return render_to_response('tcc/job_submit.html', context_instance=RequestContext(request))
+			if profile.report_type == "1":
+				return HttpResponseRedirect(reverse('Automation.tcc.views.add_suspence'))
+			else :
+				return HttpResponseRedirect(reverse('Automation.tcc.views.gen_report'))
 	else:
-  		form = ClientJobForm()
-	return render_to_response('tcc/add_job2.html', {"form": form,"test":test,'field_list':field_list,'payment':payment,'work':work,"report":report}, context_instance=RequestContext(request))
+		form = ClientJobForm()
+	return render_to_response('tcc/add_job2.html', {"form": form,"test":test,'field_list':field_list,'payment':payment,'work':work}, context_instance=RequestContext(request))
 	
+
+def suspence(request):
+	return render_to_response('tcc/add_job2.html', context_instance=RequestContext(request))
+
 @login_required
 def sessioned(request):
 	id = ClientJob.objects.aggregate(Max('job_no'))
@@ -269,7 +322,8 @@ def sessioned(request):
 
 @login_required
 def job_ok(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	material =request.GET.get('id', '')
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
 	value = TestTotal.objects.values_list('unit_price',flat=True).filter(job_no=maxid)
@@ -281,66 +335,7 @@ def job_ok(request):
 	net_total =  price + higher_education_tax + education_tax + service_tax
 	m = Bill(job_no = job_no, price = price, service_tax=service_tax, higher_education_tax=higher_education_tax,education_tax=education_tax,net_total=net_total)
 	m.save()
-	'''from Automation.tcc.variable import *
-	test = TestTotal.objects.all().values_list('unit_price').filter(job_no =maxid)
-	testid = TestTotal.objects.all().values_list('id').filter(job_no =maxid)
-	for test in testid:
-		if test	 == "ROUTINE":
-			rou= TestTotal.objects.all().values_list('unit_price',flat=True).filter(type="ROUTINE").filter(job_no =maxid)
-			unit_price == 0
-			unit = sum(rou)
-			unit_price = unit_price + unit
-		else :
- 			rou= TestTotal.objects.all().values_list('unit_price',flat=True).filter(type="INSTITUTIONAL").filter(job_no =maxid)
-			unit_price == 0
-			unit = sum(rou)
-			unit_price = unit_price + unit
-	college_income = round(collegeincome * unit_price / 100.00)
-	admin_charge = round(admincharge * unit_price / 100.00)
-	temp =  unit_price - college_income - admin_charge
-	ratio1 = ratio1(type)
-	ratio2 = ratio2(type)
-	consultancy_asst = round(ratio1 * temp / 100)
-	development_fund = round(ratio2 * temp / 100)
-	n = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,)
-	n.save()'''
-	return render_to_response('tcc/job_ok.html', {"maxid":maxid}, context_instance=RequestContext(request))
-
-
-def test_calculation(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
-	maxid =id['job_no__max']
-	client = ClientJob.objects.get(job_no=maxid)
-	value = ClientJob.objects.values_list('test').filter(job_no=id)
-	values = Test.objects.values_list('cost',flat=True).filter(id__in = value)
-	amt = sum(values)
-	job_no = client.job_no
-	p = TestTotal(amt=amt, job_no=job_no)
-	p.save()
-	return render_to_response('tcc/new_client_ok.html', context_instance=RequestContext(request))
-	
-
-def tests(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
-	maxid =id['job_no__max']
-	material = Material.objects.all()
-	client = ClientJob.objects.values_list('material_id',flat=True).filter(job_no = maxid)
-
-	if request.method == 'POST':
-		#hmm = request.POST.getlist['tests']
-		#profile_form = form_class(request.POST, instance=profile)
-		form = MyForm(request.POST)
-		if form.is_valid():
-			cd = form.cleaned_data
-			tests = Test.objects.filter(material_id = client)
-			tests =cd['tests']
-			#field = cd['field']
-			form.save()
-			return render_to_response('tcc/checktest.html', {'tests':tests,'material':material,}, context_instance=RequestContext(request))
-	else:
-		form = 	MyForm()
-		return render_to_response('tcc/checktest.html', {'form': form,'maxid':maxid,}, context_instance=RequestContext(request))
-
+	return render_to_response('tcc/job_ok.html', {"maxid":maxid,'material':material,'maxid':maxid}, context_instance=RequestContext(request))
 
 
 def search(request):
@@ -377,15 +372,15 @@ def save_job(request):
 
 @login_required
 def bill(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
-	client = ClientJob.objects.all().values_list('client_id',flat=True).filter(job_no=job_no)
-	clients = UserProfile.objects.all().values_list('name',flat=True).filter(user_id__in = client)
-	site = ClientJob.objects.all().values_list('site',flat=True).filter(job_no=maxid)
-	mat = ClientJob.objects.all().values_list('material_id',flat=True).filter(job_no=maxid)
-	mate = Material.objects.all().values_list('name', flat=True).filter(id__in = mat)
-	mates = TestTotal.objects.all().values_list('unit_price', flat=True).filter(job_no=maxid)
+	client = Job.objects.all().values_list('client_id',flat=True).filter(job_no=job_no)
+	clients = UserProfile.objects.all().filter(user_id = client)
+	job = Job.objects.all().filter(job_no=maxid)
+	mat = TestTotal.objects.all().values_list('mat',flat=True).filter(job_no=maxid)
+	mate = Material.objects.all().filter(id__in = mat)
+	price = TestTotal.objects.all().filter(job_no=maxid)
 	from Automation.tcc.variable import *
 	bill = Bill.objects.get(job_no=maxid)
 	title = get_object_or_404(Department, pk='1')
@@ -397,7 +392,7 @@ def bill(request):
 	net_total_eng = num2eng(net_total1)
 	template = {'job_no': job_no ,'bill_no':bill.job_no,'net_total_eng':net_total_eng,'servicetaxprint':servicetaxprint,
 	'highereducationtaxprint':highereducationtaxprint,'educationtaxprint':educationtaxprint,'clients': clients,'bill':bill, 'title':title,
-	'address':address,'mate':mate,'site':site,'mates':mates,'net_total1':net_total1}
+	'address':address,'mate':mate,'job':job,'price':price,'net_total1':net_total1}
 	return render_to_response('tcc/bill.html', template , context_instance=RequestContext(request))
 
 @login_required
@@ -405,25 +400,26 @@ def receipt_report(request):
 	"""
 	View the Receipt Data In Html format
 	"""
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
-	mates = TestTotal.objects.all().filter(job_no=maxid)
-	client = ClientJob.objects.all().values_list('client_id',flat=True).filter(job_no=job_no)
+	price = TestTotal.objects.all().filter(job_no=maxid)
+	client = Job.objects.all().values_list('client_id',flat=True).filter(job_no=job_no)
 	clients = UserProfile.objects.all().get(user_id__in = client)
-	mat = ClientJob.objects.all().values_list('material_id',flat=True).filter(job_no=maxid)
+	job = Job.objects.all().filter(job_no=maxid)
+	mat = TestTotal.objects.all().values_list('mat',flat=True).filter(job_no=maxid)
 	mate = Material.objects.all().filter(id__in = mat)
+	total = Bill.objects.all().filter(job_no=maxid)
 	bill = Bill.objects.get(job_no=job_no)
 	title = get_object_or_404(Department, pk='1')
 	address = get_object_or_404(Organisation, pk='1')
 	net_total1 = bill.net_total
 	net_total_eng = num2eng(net_total1)
-	type = 'CASH'
-	template = {'job_no': job_no ,'mate':mate, 'net_total_eng':net_total_eng,'type':type,'mates': mates,'title':title, 'address':address,'clients':clients}
+	template = {'job_no': job_no ,'mate':mate, 'net_total_eng':net_total_eng,'type':type,'price': price,'title':title, 'address':address,'clients':clients,'total':total,'job':job}
 	return render_to_response('tcc/receipt.html', template , context_instance=RequestContext(request))
 
-def gen_report(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
+def g_report(request):
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
 	amt = Amount.objects.all().filter(job_no=maxid)
@@ -432,7 +428,7 @@ def gen_report(request):
 @login_required	
 def rep(request):
 	from Automation.tcc.variable import *
-	id = ClientJob.objects.aggregate(Max('job_no'))
+	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
 	query =request.GET.get('id')
@@ -442,11 +438,12 @@ def rep(request):
 	#clients = UserProfile.objects.all().values_list('name',flat=True).filter(user_id__in = user)
 	#mat = ClientJob.objects.all().values_list('material_id',flat=True).filter(job_no=maxid)
 	#mate = Material.objects.all().values_list('name', flat=True).filter(id__in = mat)
-	user = ClientJob.objects.all().get(id=query)
+	user = Job.objects.all().get(id=query)
 	users = user.client_id
 	clients = UserProfile.objects.all().get(user=users )
+	use = ClientJob.objects.all().get(id=query)
 	cli = clients.name
-	mat = user.material_id
+	mat = use.material_id
 	mate = Material.objects.all().get(id = mat)
 	lab = mate.lab_id
 	staff = Staff.objects.all().filter(lab_id = lab)
@@ -491,6 +488,7 @@ def all_json_tests(request, field):
 
     json_test = serializers.serialize("json", testID)
     return HttpResponse(json_test, mimetype="application/javascript")
+
 def transport(request):
 	"""
 	View of Transport Bill
@@ -518,6 +516,7 @@ def transport(request):
 	else:
 		form = TransportForm()
 	return render_to_response('tcc/client.html', {'form': form}, context_instance=RequestContext(request))
+
 def transport_bill(request):
 	"""
 	Final Report of Transport Bill
@@ -553,5 +552,25 @@ def transport_bill(request):
 	template ={'transport':transport,'title':title,'sub_title':sub_title, 'vehical_no':vehical_no ,'client':client,'sign':sign}
 	return render_to_response('tcc/transportbill.html', template , context_instance=RequestContext(request))
 
-
+def distance(request):
+	mee = Job.objects.aggregate(Max('id'))
+	jobid =mee['id__max']
+	if jobid== None :
+		jobid = 1
+	else:
+		jobid = jobid +1
+	if request.method =='POST':
+		form = DistanceForm(request.POST)
+  		if form.is_valid():
+			cd = form.cleaned_data
+			#end = cd['end']
+			sandy = cd['sandy']
+			profile = form.save(commit=False)
+			profile.job = jobid
+			profile.save()
+			return render_to_response('tcc/map_ok.html', context_instance=RequestContext(request))
+		
+	else:
+  		form = DistanceForm()
+	return render_to_response('tcc/siteinmap.html', {"form": form,}, context_instance=RequestContext(request))
 

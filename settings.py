@@ -63,6 +63,21 @@ ADMIN_MEDIA_PREFIX = '/media/'
 
 AUTH_PROFILE_MODULE = 'tcc.UserProfile'
 
+# Additional locations of static files
+STATICFILES_DIRS = (
+    # Put strings here, like "/home/html/static" or "C:/www/django/static".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
+
+# List of finder classes that know how to find static files in
+# various locations.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+)
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '@3t%hg=e4%fuwrxhq#qm4gp!%0albmve6natdxiqoxcx8#8$wd'
 
@@ -93,16 +108,6 @@ TEMPLATE_DIRS = ("/home/sandeep/Automation/templates"
     # Don't forget to use absolute paths, not relative paths.
 )
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'my_cache_table',
-	'TIMEOUT': 60,
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000
-        }
-    }
-}
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -115,11 +120,6 @@ INSTALLED_APPS = (
     'registration',
     'Automation.tcc',
     'tagging',
-    'smart_selects',
-    'catalog',
-    'catalog.contrib.defaults',
-    'cart',
-    'easy_maps',
 )
 
 
