@@ -1,0 +1,3 @@
+extdirect.django
+django-classy-tags
+django-mptt

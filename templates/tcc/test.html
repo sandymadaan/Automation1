@@ -4,11 +4,31 @@
 <html>
 <head>
     <title>gne</title>
+
 </head>
 {% block content %}
+<script>
+var selectedEl;
+document.onclick = function(evt)
+{
+    var el = window.event? event.srcElement : evt.target;
+    if (el && el.className == 'unselected')
+    {
+        
+        selectedEl.className = 'unselected';
+        
+        selectedEl = el;
+        
+        selectedEl.className = 'selected';
+    }
+}
+</script>
+<style>
+ .selected { background: #f00; }
+</style>
 <div align="center"><h2>Catalog</h2></div>
 <br/>
-<div align="left"><table>
+ <div id="leftnav" style=" float: left; width:auto;"> <table>
 	<tr><td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>
@@ -22,11 +42,13 @@
 			<td>{{forloop.counter}}</td>
 			<td> </td>
 			<td> </td>
-			<td> <a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ fields.id }}" >{{fields.name}}</a> </td>
+			<td> <span class="unselected"><a href="{{ LOCAL_URL }}/automation/tcc11_12/rate/?id={{ fields.id }}" >{{fields.name}}</a> </span></td>
 </tr>
 	{% endfor %}
 {% endif %}</table>
-<div align="center"><table>	<tr>
+</div> 
+  <div id="content" style="float: left; width: auto; position: absolute; right: 0px; left: 300px;"> 
+  <table>	<tr>
 		<td><b>S.No</b></td>
 		<td> </td>
 		<td> </td>

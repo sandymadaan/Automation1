@@ -1,4 +1,10 @@
-# Create your views here.
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# ***Views.py***
+# This file is used to create the views for the software. 
+# It is the interface between the user interface, urls and database.
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+#::::::::::::::IMPORT THE HEADER FILE HERE::::::::::::::::::::#
 from django.http import HttpResponseRedirect,HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
@@ -7,26 +13,24 @@ from django.db.models import Max ,Q, Sum
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from Automation.tcc.choices import *
-from django.db.models import F
 from django.contrib.auth.forms import AuthenticationForm
-from Automation.tcc.models import *
-from django import template
-from Automation.tcc.functions import *
-from Automation.tcc.convert_function import *
-from tagging.models import Tag, TaggedItem
-#from cart import Cart
 from django.contrib.sessions.models import Session
+from django.db.models import F
+from django import template
+from tagging.models import Tag, TaggedItem
+from Automation.tcc.choices import *
+from Automation.tcc.models import *
+from Automation.tcc.functions import *
+from Automation.tcc.forms import *
+from Automation.tcc.convert_function import *
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
-
-def material_test_select(request):
-    material = Material.objects.all()
-    test = Test.objects.all()
-
-    return render_to_response('tcc/dynamicdrop1.html', {'material' : material,'test':test}, context_instance=RequestContext(request))
-
+#:::::::::::::::DEFINE THE FUNCTIONS HERE:::::::::::::::::::::#
 @login_required
 def index1(request):
+	#'''
+	#***This to have different views for different type of users
+	#'''
 	title = get_object_or_404(Department, pk='1')
 	address = get_object_or_404(Organisation, pk='1')
 	id = Job.objects.aggregate(Max('job_no'))
@@ -35,11 +39,10 @@ def index1(request):
 		maxid = 1
 	else:
 		maxid = maxid + 1
-	#name = Organisation.objects.get('name')
 	template = {'address':address,'title':title,'maxid':maxid,}
 	if request.user.is_staff == 1 and request.user.is_active == 1 and request.user.is_superuser == 1:
 		return render_to_response('index1.html',template,context_instance=RequestContext(request))
-	elif request.user.is_staff == 1 and request.user.is_active == 1 and request.user.is_superuser == 0 :
+	elif request.user.is_staff == 0 and request.user.is_active == 1 and request.user.is_superuser == 0 :
 		return render_to_response('index2.html', context_instance=RequestContext(request))
 	else:
 		return render_to_response('index3.html', context_instance=RequestContext(request))
@@ -47,53 +50,71 @@ def index1(request):
 
 @login_required
 def profile(request):
+	#"""
+	#***To fill personal details of user
+	#"""
 	if request.method == 'POST':
 		form = UserProfileForm(request.POST)
 		if form.is_valid():
 			cd = form.cleaned_data
-			pro = form.save(commit=False)
+			user = request.user
+			name = cd['name']
+			address_1 = cd['address_1']
+			address_2 = cd['address_2']
+			city = cd['city']
+			pin_code = cd['pin_code']
+			state = cd['state']
+			website = cd['website']
+			contact_no = cd['contact_no']
+			type_of_organisation = cd['type_of_organisation']
+			'''pro = form.save(commit=False)
 			pro.user = request.user
 			pro.save()
-			form.save()
-		return render_to_response('tcc/new_client_ok.html', {'form': form,}, context_instance=RequestContext(request))
+			form.save()'''
+			if request.user.is_staff == 1 and request.user.is_active == 1 and request.user.is_superuser == 0:
+				UserProfile.objects.filter(user = user).update(name=name,address_1=address_1,address_2=address_2,city=city,pin_code=pin_code,state=state,website=website,contact_no=contact_no,type_of_organisation=type_of_organisation)
+			else:
+				m = UserProfile(name=name,address_1=address_1,address_2=address_2,city=city,pin_code=pin_code,state=state,website=website,contact_no=contact_no,type_of_organisation=type_of_organisation,user=user)
+				m.save()
+		id = UserProfile.objects.aggregate(Max('id'))
+		maxid =id['id__max']		
+		return render_to_response('tcc/new_client_ok.html', {'form': form,'maxid':maxid}, context_instance=RequestContext(request))
 	else:
 		form = UserProfileForm()
 	return render_to_response('tcc/new_client.html', {'form': form}, context_instance=RequestContext(request))
 
 @login_required
 def performa(request):
-	"""
-	Detail Veiw of data
-	"""
+	#"""
+	#***Detail Veiw of data
+	#"""
 	user = User.objects.get(id=request.GET['id'])
 	performa = UserProfile.objects.filter(user_id = user)
-     #   x
-       # while(fulldetail=fulldetail)
-        #    y=x++
-	return render_to_response("tcc/detail.html", {'performa' : performa, 'user':user} )
+    	return render_to_response("tcc/detail.html", {'performa' : performa, 'user':user} )
 
 @login_required
 def previous(request):
+	#"""
+	#***Previous jobs entered by the user
+	#"""
 	title = get_object_or_404(Department, pk='1')
 	client = request.user
 	job = Job.objects.all().filter(client_id =client)
 	return render_to_response('tcc/previous.html', {'job':job,'title':title}, context_instance=RequestContext(request))
 
 @login_required
-def catalog(request):
-	lab = Lab.objects.all().order_by('code')
-	return render_to_response('tcc/catalog.html', {'lab':lab,}, context_instance=RequestContext(request))
-
-@login_required
 def material(request):
-	#lab = Lab.objects.all().order_by('code')
-	#lab = Lab.objects.get(id=request.GET['id'])
-	#lab_id = request.lab
+	#"""
+	#***List the materials
+	#"""
 	material = Material.objects.all().order_by('name')
-	return render_to_response('tcc/field.html', {'material':material}, context_instance=RequestContext(request))
+	return render_to_response('tcc/field.html', {'material':material,}, context_instance=RequestContext(request))
 
 @login_required
 def rate(request):
+	#"""
+	#***List the test to be performed on a material
+	#"""
 	lab = Lab.objects.all().order_by('code')
         field = Material.objects.all()
 	material = Material.objects.get(id=request.GET['id'])
@@ -101,22 +122,26 @@ def rate(request):
 	return render_to_response('tcc/test.html', {'lab':lab,'test':test,'material':material,'field':field}, context_instance=RequestContext(request))
 
 
-
-@login_required
-def all_tcc_fields(request, lab):
-    lab = Lab.objects.get(id=lab)
-    field = field.objects.all().filter(lab_id=field)
-    tcc_fields = serializers.serialize("tcc", fields)
-    return HttpResponse(tcc_fields, mimetype="application/javascript")
-
 @login_required
 def selectfield(request):
+	#"""
+	#***List the type of work to be done i.e Lab or Field work
+	#"""
+	client =UserProfile.objects.get(id=request.GET['id'])
+	#client =UserProfile.objects.get(id = clientid)
+	#client = cli.id
+	user = request.user
+	m = Clientadd(client = client,user=user)
+	m.save()
 	report = Report.objects.all()
 	mat = Material.objects.all()
 	return render_to_response('tcc/typeofwork.html',{'report':report,'mat':mat}, context_instance=RequestContext(request))
 
 @login_required
 def select(request):
+	#"""
+	#***List down the materials or the field work depending on the selection of the type of work
+	#"""	
 	report = Report.objects.all()
 	mat = Material.objects.all()
 	material = Report.objects.get(id=request.GET['id'])
@@ -124,15 +149,10 @@ def select(request):
 	return render_to_response('tcc/tags.html',{'field_list':field_list,'report':report,'mat':mat}, context_instance=RequestContext(request))
 
 @login_required
-def selectcart(request):
-	material = Report.objects.get(id=request.GET['id'])
-	field_list = Material.objects.all().filter(report_id =material)
-	return render_to_response('tcc/tags1.html',{'field_list':field_list}, context_instance=RequestContext(request))
-
-
-	
-@login_required
 def add_job(request):
+	#"""
+	#***This helps the user to add the job
+	#"""
 	report = Report.objects.all()
 	field_list = Material.objects.all().filter(report_id = 2)
 	query =request.GET.get('q', '')
@@ -141,7 +161,7 @@ def add_job(request):
 	if maxid== None :
 		maxid = 1
 	else:
-		maxid = maxid +1
+		maxid = maxid + 1
 	work = Govt.objects.all()
 	payment = Payment.objects.all()
 	material =Material.objects.get(id=request.GET['q'])
@@ -151,9 +171,17 @@ def add_job(request):
 			form1 = JobForm(request.POST)
 			form2 = ClientJobForm(request.POST)
 			if form1.is_valid and form2.is_valid():
+				def clean_name(self):
+        				cleaned_data = self.cleaned_data
+					pay = cleaned_data.get('pay', '')
+					check_number = cleaned_data.get('check_number', '')
+					check_dd_date = cleaned_data.get('check_dd_date', '')
 				profile = form1.save(commit=False)
 				profile.job_no = maxid
-				profile.client = request.user
+				cl = Clientadd.objects.aggregate(Max('id'))
+				clientid =cl['id__max']
+				clid = Clientadd.objects.get(id = clientid)
+				profile.client = clid
 				report = Report.objects.get(id=1)
 				profile.report_type = report
 				profile.save()
@@ -185,7 +213,8 @@ def add_job(request):
 				profile.report_type = report
 				profile.save()
         			form1.save_m2m()
-				profile1 = form2.save(commit=False)		
+				profile1 = form2.save(commit=False)	
+				profile1.job_no = maxid	
 				profile1.field = material
 				client = Job.objects.get(id =maxid)
 				profile1.job = client
@@ -200,12 +229,28 @@ def add_job(request):
 		return render_to_response('tcc/add_suspence.html', {"form1": form1,"test":test,'field_list':field_list,'payment':payment,'work':work,"report":report}, context_instance=RequestContext(request))
 	
 def add_suspence(request):
+	#"""
+	#***The jobs which are to be kept under suspence comes here 
+	#"""
 	mee = SuspenceJob.objects.aggregate(Max('id'))
 	minid =mee['id__max']
 	client = SuspenceJob.objects.get(id=minid)
 	value = SuspenceJob.objects.values_list('test').filter(id=minid)
 	values = Test.objects.get(id = value)
-	unit_price = int(client.other)*int(values.cost)+int(values.quantity)
+	if client.field_id == 5:
+		a = int(client.other) - 10
+		b = int(client.other) - 20
+		c = int(client.other) - 30
+		if a > 0:
+			unit_price = a*int(values.cost)+int(values.quantity)
+		elif b > 0: 
+			unit_price = b*int(values.cost)+int(values.quantity)
+		elif c > 0:
+			unit_price = c*int(values.cost)+int(values.quantity)
+		else :
+			unit_price = int(client.other)*int(values.cost)+int(values.quantity)
+	elif client.field_id == 6:
+		unit_price = values.cost
 	job_no = client.job_id
 	mat = client.field_id
 	test = Test.objects.all().filter(material_id = mat)
@@ -215,22 +260,26 @@ def add_suspence(request):
 		type = "ROUTINE"
 	p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
 	p.save()
-	dist = Distance.objects.get(job = minid)
-	distance = dist.sandy 
-	rate = 7*distance
+	dist =  Distance.objects.aggregate(Max('id'))
+	distid =mee['id__max']
+	site = Distance.objects.get(id=distid)
+	distance = 2*site.sandy
+	report_type = "Suspence" 
+	if distance < 100:
+		rate = 1000
+	else :
+		rate = 10*distance
 	sus = client
-	m = Suspence(rate=rate, sus=sus)
+	m = Suspence(rate=rate, sus=sus,job_no=job_no)
 	m.save()
+	amt = Amount(job_no = job_no ,unit_price=unit_price,report_type = report_type)
+	amt.save()
 	return HttpResponseRedirect(reverse('Automation.tcc.views.job_submit'))
 
-'''def job_submit1(request):
-	mee = SuspenceJob.objects.aggregate(Max(''))
-	minid =mee['id__max']
-	client = Job.objects.get(id=minid)
-	value = client.report_type_id
-	return render_to_response('tcc/job_submit.html',{'mee':mee,'minid':minid,'value':value}, context_instance=RequestContext(request))'''
-
 def gen_report(request):
+	#"""
+	#***The jobs which are non suspence comes here
+	#"""
 	mee = Job.objects.aggregate(Max('id'))
 	minid =mee['id__max']
 	client = Job.objects.get(id=minid)
@@ -249,6 +298,10 @@ def gen_report(request):
 		type = "INSTITUTIONAL"
 	p = TestTotal(unit_price=unit_price, job_no=job_no,mat=mat,type=type)
 	p.save()
+	if client.pay == "CASH":
+		report_type = "General_report"
+	else:
+		report_type = "Suspence"
 	from Automation.tcc.variable import *
 	college_income = round(collegeincome * unit_price / 100.00)
 	admin_charge = round(admincharge * unit_price / 100.00)
@@ -257,71 +310,25 @@ def gen_report(request):
 	ratio2 = ratio2(type)
 	consultancy_asst = round(ratio1 * temp / 100)
 	development_fund = round(ratio2 * temp / 100)
-	m = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = 	college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,)
+	m = Amount(job_no = job_no ,unit_price=unit_price,development_fund=development_fund, college_income = 	college_income, admin_charge=admin_charge, consultancy_asst=consultancy_asst,report_type = report_type)
 	m.save()
 	return HttpResponseRedirect(reverse('Automation.tcc.views.job_submit'))
 
 def job_submit(request):
+	#"""
+	#***The view to ensure that job is successfully saved
+	#"""
 	mee = Job.objects.aggregate(Max('id'))
 	minid =mee['id__max']
 	client = Job.objects.get(id=minid)
 	value = client.report_type_id
 	return render_to_response('tcc/job_submit.html',{'mee':mee,'minid':minid,'value':value}, context_instance=RequestContext(request))
 	
-
-
-	
-@login_required
-def add_to_cart(request):
-	field_list = Material.objects.all()
-	query =request.GET.get('q', '')
-	id = ClientJob.objects.aggregate(Max('job_no'))
-	maxid =id['job_no__max']
-	report = Report.objects.all()
-	work = Govt.objects.all()
-	payment = Payment.objects.all()
-	material =Material.objects.get(id=request.GET['q'])
-	test = Test.objects.all().filter(material_id = query)
-	if request.method=='POST':
-		form = ClientJobForm(request.POST)
-  		if form.is_valid():
-			cd = form.cleaned_data
-			site = cd['site']
-			type_of_work = cd['type_of_work']
-			report_type = cd['report_type']
-			test = request.POST.getlist('test')
-			selected_work = get_object_or_404(Govt, pk=request.POST.get('type_of_work'))
-			selected_report = get_object_or_404(Report, pk=request.POST.get('report_type'))
-			profile = form.save(commit=False)
-			#request.session.save()
-			profile.job_no = maxid
-			mat =Material.objects.get(id=request.GET['q'])
-			profile.material = mat
-			profile.client = request.user
-			profile.type_of_work = selected_work
-			profile.report_type = selected_report
-			profile.save()
-        		form.save_m2m()
-			if profile.report_type == "1":
-				return HttpResponseRedirect(reverse('Automation.tcc.views.add_suspence'))
-			else :
-				return HttpResponseRedirect(reverse('Automation.tcc.views.gen_report'))
-	else:
-		form = ClientJobForm()
-	return render_to_response('tcc/add_job2.html', {"form": form,"test":test,'field_list':field_list,'payment':payment,'work':work}, context_instance=RequestContext(request))
-	
-
-def suspence(request):
-	return render_to_response('tcc/add_job2.html', context_instance=RequestContext(request))
-
-@login_required
-def sessioned(request):
-	id = ClientJob.objects.aggregate(Max('job_no'))
-	maxid =id['job_no__max']
-	s = request.session['amt']
-
 @login_required
 def job_ok(request):
+	#"""
+	#***This is to do the calculation of taxes 
+	#"""
 	material =request.GET.get('id', '')
 	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
@@ -337,41 +344,11 @@ def job_ok(request):
 	m.save()
 	return render_to_response('tcc/job_ok.html', {"maxid":maxid,'material':material,'maxid':maxid}, context_instance=RequestContext(request))
 
-
-def search(request):
-    field_list = Material.objects.all()
-    return render_to_response('tcc/tags.html',{'field_list':field_list}, context_instance=RequestContext(request))
-
-def save_job(request):
-	query =request.GET.get('q', '')
-	material =Material.objects.get(id=request.GET['q'])
-	test = Test.objects.all().filter(material_id = query)
-	if request.method=='POST':
-		form = JobForm(request.POST)
-  		if form.is_valid():
-			cd = form.cleaned_data
-			place = cd['place']
-			test = request.POST.getlist('test')
-			#form.save_m2m()
-			#id = ClientJob.objects.aggregate(Max('job_no'))
-			#maxid =id['job_no__max']
-			#profile = form.save(commit=False)
-			#request.session.save()
-			#profile.material = material.name
-			#profile.job_no = maxid
-			#profile.client = request.user
-			#profile.save()
-			form.save()
-       			#form.save_m2m()
-			return render_to_response('tcc/save_job.html', {'form':form,'place':place,'test':test}, context_instance=RequestContext(request))
-		
-	else:
-		form = JobForm()
-	return render_to_response('tcc/search.html', {'form': form,"query": query,"test":test,"material":material,}, context_instance=RequestContext(request)) 
-
-
 @login_required
 def bill(request):
+	#"""
+	#***This shows the bill in HTML format
+	#"""
 	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
@@ -397,9 +374,9 @@ def bill(request):
 
 @login_required
 def receipt_report(request):
-	"""
-	View the Receipt Data In Html format
-	"""
+	#"""
+	#***View the Receipt In Html format
+	#"""
 	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
@@ -419,6 +396,9 @@ def receipt_report(request):
 	return render_to_response('tcc/receipt.html', template , context_instance=RequestContext(request))
 
 def g_report(request):
+	#"""
+	#***Shows the total reports generated
+	#"""
 	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
 	job_no = maxid
@@ -427,6 +407,9 @@ def g_report(request):
 	
 @login_required	
 def rep(request):
+	#"""
+	#***Displays the voucher in html format
+	#"""
 	from Automation.tcc.variable import *
 	id = Job.objects.aggregate(Max('job_no'))
 	maxid =id['job_no__max']
@@ -434,10 +417,6 @@ def rep(request):
 	query =request.GET.get('id')
 	client = TestTotal.objects.all().get(id =query)
 	amount = Amount.objects.all().get(id =query)
-	#user = ClientJob.objects.all().values_list('client_id',flat=True).filter(job_no=job_no)
-	#clients = UserProfile.objects.all().values_list('name',flat=True).filter(user_id__in = user)
-	#mat = ClientJob.objects.all().values_list('material_id',flat=True).filter(job_no=maxid)
-	#mate = Material.objects.all().values_list('name', flat=True).filter(id__in = mat)
 	user = Job.objects.all().get(id=query)
 	users = user.client_id
 	clients = UserProfile.objects.all().get(user=users )
@@ -461,38 +440,11 @@ def rep(request):
 	'highereducationtaxprint':highereducationtaxprint,'educationtaxprint':educationtaxprint,'client': client,'amount':amount,'con_type':con_type, 'ratio1':ratio1 ,'ratio2':ratio2,'collegeincome':collegeincome,'admincharge' : admincharge,'cli':cli,'mate':mate,'staff':staff, }
 	return render_to_response('tcc/report.html', template , context_instance=RequestContext(request))
 
-def remove_from_cart(request, product_id):
- product = Product.objects.get(id=product_id)
- cart = Cart(request)
- cart.remove(product)
-
-def get_cart(request):
- return render_to_response('cart.html', dict(cart=Cart(request)))
-
-@login_required
-def tags(request):
-	field_list = Material.objects.all()
-	return render_to_response('tcc/tags.html',{'field_list':field_list}, context_instance=RequestContext(request))
-
-def with_tag(request, tag, object_id=None, page=1):
-
-    query_tag = Tag.objects.get(name=tag)
-    entries = TaggedItem.objects.get_by_model(Material, query_tag)
-    entries = entries.order_by('-id')
-    return render_to_response('tcc/with_tag.html', dict(tag=tag, entries=entries))
-
-
-def all_json_tests(request, field):
-    fieldID = User.objects.get(fieldID=request.GET['fieldID'])
-    testID = Test.objects.filter(field_id = fieldID)
-
-    json_test = serializers.serialize("json", testID)
-    return HttpResponse(json_test, mimetype="application/javascript")
 
 def transport(request):
-	"""
-	View of Transport Bill
-	"""
+	#"""
+	#***View of Transport Bill
+	#"""
 	if request.method == 'POST':
 		form = TransportForm(request.POST)
 		if form.is_valid():
@@ -518,9 +470,9 @@ def transport(request):
 	return render_to_response('tcc/client.html', {'form': form}, context_instance=RequestContext(request))
 
 def transport_bill(request):
-	"""
-	Final Report of Transport Bill
-	"""
+	#"""
+	#***Final Report of Transport Bill
+	#"""
 	transport_old = Transport.objects.get(job_no=request.GET['job_no'])
 	client = ClientJob.objects.get(job_no=request.GET['job_no'])
 	kilometer = transport_old.kilometer
@@ -553,6 +505,9 @@ def transport_bill(request):
 	return render_to_response('tcc/transportbill.html', template , context_instance=RequestContext(request))
 
 def distance(request):
+	#"""
+	#***This is for calculation of distance of the site on the map
+	#"""
 	mee = Job.objects.aggregate(Max('id'))
 	jobid =mee['id__max']
 	if jobid== None :
@@ -568,9 +523,51 @@ def distance(request):
 			profile = form.save(commit=False)
 			profile.job = jobid
 			profile.save()
-			return render_to_response('tcc/clientjob_ok.html', context_instance=RequestContext(request))
+			return render_to_response('tcc/map_ok.html', context_instance=RequestContext(request))
 		
 	else:
   		form = DistanceForm()
 	return render_to_response('tcc/siteinmap.html', {"form": form,}, context_instance=RequestContext(request))
 
+def suspence_clearance(request):
+	#"""
+	#***Suspence Clearance is done here 
+	#"""
+	if request.method == 'POST':
+		form = SuspenceClearence(request.POST)
+		if form.is_valid():
+			cd = form.cleaned_data
+			job_no =cd['job_no']
+			labour_charge =cd['labour_charge']
+			car_taxi_charge =cd['car_taxi_charge']
+			boring_charge_external=cd['boring_charge_external']
+			boring_charge_internal=cd['boring_charge_internal']
+			lab_testing_staff=cd['lab_testing_staff']
+			field_testing_staff =cd ['field_testing_staff']
+			#suspence_bill_no =cd['suspence_bill_no']
+			Suspence.objects.filter(job_no = job_no).update(labour_charge=labour_charge,boring_charge_external=boring_charge_external, 
+			boring_charge_internal= boring_charge_internal,field_testing_staff=field_testing_staff,car_taxi_charge=car_taxi_charge,lab_testing_staff=lab_testing_staff)
+			data = {'job_no' :job_no, 'labour_charge':labour_charge,'boring_charge_external':boring_charge_external,
+			'boring_charge_internal': boring_charge_internal,'car_taxi_charge':car_taxi_charge,'lab_testing_staff':lab_testing_staff}
+			return render_to_response('tcc/suspence_clearence_ok.html', data, context_instance=RequestContext(request))
+	else:
+		form = SuspenceClearence()
+		return render_to_response('tcc/new_client.html', {'form': form}, context_instance=RequestContext(request))
+
+def suspence(request):
+	return render_to_response('tcc/add_job2.html', context_instance=RequestContext(request))
+
+def search(request):
+    query = request.GET.get('q', '')
+    if query:
+        qset = (
+            Q(name__icontains=query) |
+            Q(type_of_organisation__icontains=query)
+        )
+        results = UserProfile.objects.filter(qset).distinct()
+    else:
+        results = []
+    return render_to_response("tcc/search.html", {
+        "results": results,
+        "query": query
+    })

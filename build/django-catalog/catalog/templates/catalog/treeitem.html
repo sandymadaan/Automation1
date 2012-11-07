@@ -1,0 +1,10 @@
+{% extends "catalog/base.html" %}
+{% load catalog_tags %}
+
+
+{% block content %}
+<h1>{% if object.content_object %}{{ object.content_object }}{% else %}{{ object }}{% endif %}</h1>
+
+Children: 
+    {% catalog_children for object %}
+{% endblock %}

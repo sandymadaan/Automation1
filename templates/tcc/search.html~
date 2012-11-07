@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+    <title>Search{% if query %} Results{% endif %}</title>
+</head>
+<body>
+  <h1>Search</h1>
+  <form action="." method="GET">
+    <label for="q">Search: </label>
+    <input type="text" name="q" value="{{ query|escape }}">
+    <input type="submit" value="Search">
+  </form>
+
+  {% if query %}
+    <h2>Results for "{{ query|escape }}":</h2>
+
+    {% if results %}
+      <ul>
+      {% for client in results %}
+        <li>Name : {{ client.name }}</li>
+        <li>Address : {{client.address_1}},{{client.city}}</li>
+        <li>Type of Organisation : {{client.type_of_organisation}}</li>
+        <b><a href="/automation/tcc11_12/addjob/?id={{ client.id }}">ADD JOB</a></b>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>No clients found</p>
+    {% endif %}
+  {% endif %}
+</body>
+</html>

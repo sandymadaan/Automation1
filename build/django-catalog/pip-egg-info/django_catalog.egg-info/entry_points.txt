@@ -1,0 +1,3 @@
+[redsolutioncms]
+catalog = catalog.redsolution_setup
+

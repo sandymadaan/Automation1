@@ -1,0 +1,88 @@
+Metadata-Version: 1.0
+Name: django-catalog
+Version: 2.1.0
+Summary: Django generic catalog application. Organize objects in tree structure, allows
+to make links for objects.
+Home-page: UNKNOWN
+Author: Ivan Gromov
+Author-email: ivan.gromov@redsolution.ru
+License: GPL
+Description: ================
+        Django-catalog
+        ================
+        
+        Application allows to organize objects in tree hierarhy.
+        
+        This Documentation is poor for now, but it contains instructions 
+        how to set up application with default settings. 
+        
+        Download & Install:
+        --------------------
+        
+        **Download**
+        
+        #) From python package index:::
+        
+            pip install djang-catalog
+        
+        #) From github:::
+        
+            pip install -e git://github.com/redsolution/django-catalog.git@2.0.0#egg=Django-catalog
+        
+        **Quick install**
+        
+        #) Include applications into ``INSTALLED_APPS``::
+        
+            INSTALLED_APPS += [
+            ...
+            'mptt',
+            'catalog',
+            'catalog.contrib.defaults',
+            ...
+            ]    
+        
+        #) Include catalog in ``urls.py``::
+        
+            urlpatterns += patterns('',
+                url(r'^catalog/', include('catalog.urls.by_slug')),
+            )
+        
+        #) Run ``manage.py syncdb``
+        
+        For more complicated installation options look into documentation.
+        
+        Features
+        ---------
+        
+        * Nice admin interface with drag-n-grop manipulations.
+        * Generic model relationship architechture (any model can be included in catalog tree)
+        * Useful templatetags library
+        * Hightly customizable
+        
+        
+        Screenshot:
+        
+        |catalog-admin|
+        
+        .. |catalog-admin|  image:: http://github.com/redsolution/django-catalog/raw/2.0.0/docs/admin-screenshot.png
+        
+        
+        Redsolution CMS classifiers:
+        ----------------------------
+        
+        `Content plugins`_
+        
+        .. _`Content plugins`: http://www.redsolutioncms.org/classifiers/content
+        
+Keywords: django catalog
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Framework :: Django
+Classifier: Environment :: Web Environment
+Classifier: Natural Language :: Russian
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary

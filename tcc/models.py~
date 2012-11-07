@@ -31,7 +31,7 @@ class Report(models.Model):
 
 class UserProfile(models.Model):
     # This field is required.
-        user = models.OneToOneField(User)
+        user = models.ForeignKey(User)
 
     # Other fields here
         name = models.CharField(max_length=255,)
@@ -113,7 +113,9 @@ class Test(models.Model):
 	def get_tags(self):
         	return Tag.objects.get_for_object(self) 
 
-	
+class Clientadd(models.Model):
+	user = models.ForeignKey(User)
+	client = models.ForeignKey(UserProfile)
 	
 class Govt(models.Model):
 	name =	models.CharField(max_length=600, blank=True )
@@ -134,12 +136,15 @@ class Job(models.Model):
 	ClientJob Class is define all field required to submit detail about new Job.
 	
 	""" 
-        client = models.ForeignKey(User)
+        client = models.ForeignKey(Clientadd)
+	check_number = models.CharField(max_length=15,blank=True)
+	check_dd_date = models.CharField(blank=True, max_length=15)
 	job_no = models.IntegerField(editable =False)
 	site = models.CharField(max_length=600, blank=True )
 	type_of_work = models.ForeignKey(Govt)
 	report_type = models.ForeignKey(Report)
 	pay = models.CharField(max_length=600, blank=True )
+	date = models.DateField(auto_now_add=True)
 
 	def __unicode__(self):
           return self.id()
@@ -148,7 +153,7 @@ class Job(models.Model):
 class JobForm(forms.ModelForm):
 	class Meta :
 		model = Job
-		exclude= ['client','job_no','report_type','pay']
+		exclude= ['client','job_no','report_type','date']
                
 	
 class ClientJob(models.Model):
@@ -241,6 +246,7 @@ class Amount(models.Model):
 	consultancy_asst = models.IntegerField(blank=True,null=True)
 	development_fund = models.IntegerField(blank=True,null=True)
 	unit_price = models.IntegerField(blank=True,null=True)
+	report_type = models.CharField(max_length=100,blank=True,null=True)
 		
         def __unicode__(self):
           return self.id()
@@ -279,7 +285,8 @@ class DistanceForm(ModelForm):
 
 
 class Suspence(models.Model):
-	dist = models.ForeignKey(Distance)
+	job_no = models.IntegerField(blank=True, null=True)
+	rate = models.IntegerField(null=True, blank=True)
 	sus = models.ForeignKey(SuspenceJob)
 	work_charge = models.IntegerField(null=True, blank=True)
 	labour_charge = models.IntegerField( blank=True, null=True)

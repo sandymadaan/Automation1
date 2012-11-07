@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load easy_maps_tags %}
+
+<!-- Default map with 300x400 dimensions -->
+{% easy_map "India, Punjab, Ludhiana 32" 300 400 %}
+
+<!-- Variable address, custom detail level and custom template -->
+{% easy_map address 200 200 5 using 'easy_maps/map.html' %}
+<html>
+<head>
+    <title>Gndec Ludhiana</title>
+</head>
+{% block content %}
+
+
+<br>
+    {% if form.errors %}
+        <p style="color: red;">
+            Please correct the error{{ form.errors|pluralize }} below.
+        </p>
+    {% endif %}
+
+    <form action="" method="post">
+	{% csrf_token %}
+        <table>
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Submit">
+    </form>
+
+</html>
+{% endblock %}

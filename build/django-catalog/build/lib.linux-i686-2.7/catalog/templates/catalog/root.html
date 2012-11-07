@@ -1,0 +1,19 @@
+{% extends "catalog/base.html" %}
+
+{% block content %}
+<h1>Catalog root</h1>
+
+{% if object_list %}
+<ul>
+    {% for treeitem in object_list %}
+    {% with treeitem.content_object as object %}
+        <li><a href="{{ object.get_absolute_url }}">{{ object }}</a></li>
+    {% endwith %}
+    {% empty %}
+    {% load i18n %}
+    {% trans "Catalog is empty" %}
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}
